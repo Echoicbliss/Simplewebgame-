@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KaiOS Shooter 💀</title>
+<style>
+body { margin:0; background:black; overflow:hidden; }
+canvas { display:block; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// 🔥 low res for smooth performance
+canvas.width = 240;
+canvas.height = 320;
+
+// scale to screen
+canvas.style.width = "100vw";
+canvas.style.height = "100vh";
+
+// player
+let player = { x:120, y:280 };
+
+// bullets
+let bullets = [];
+
+// enemies
+let enemies = [];
+
+// score
+let score = 0;
+let gameOver = false;
+
+// 🔊 retro sound
+function beep(freq){
+  let a = new (window.AudioContext||window.webkitAudioContext)();
+  let o = a.createOscillator();
+  let g = a.createGain();
+
+  o.connect(g); g.connect(a.destination);
+  o.frequency.value = freq;
+  g.gain.value = 0.2;
+
+  o.start();
+  setTimeout(()=>{o.stop(); a.close();},80);
+}
+
+// controls (KEYPAD)
+document.addEventListener("keydown",(e)=>{
+  if(gameOver) return;
+
+  if(e.key === "ArrowLeft") player.x -= 15;
+  if(e.key === "ArrowRight") player.x += 15;
+
+  // center key / OK / Enter
+  if(e.key === "Enter"){
+    bullets.push({x:player.x, y:player.y});
+    beep(500);
+  }
+});
+
+// spawn enemies
+setInterval(()=>{
+  if(!gameOver){
+    enemies.push({
+      x: Math.random()*220,
+      y: 0
+    });
+  }
+}, 1000);
+
+// update
+function update(){
+  bullets.forEach(b=> b.y -= 6);
+  enemies.forEach(e=> e.y += 2);
+
+  // collision
+  bullets.forEach((b,bi)=>{
+    enemies.forEach((e,ei)=>{
+      if(
+        b.x < e.x+10 &&
+        b.x > e.x &&
+        b.y < e.y+10 &&
+        b.y > e.y
+      ){
+        enemies.splice(ei,1);
+        bullets.splice(bi,1);
+        score++;
+        beep(200);
+      }
+    });
+  });
+
+  // enemy hits player
+  enemies.forEach(e=>{
+    if(
+      e.x < player.x+10 &&
+      e.x > player.x-10 &&
+      e.y > player.y-10
+    ){
+      gameOver = true;
+      beep(100);
+    }
+  });
+}
+
+// draw
+function draw(){
+  ctx.fillStyle="black";
+  ctx.fillRect(0,0,240,320);
+
+  // player
+  ctx.fillStyle="cyan";
+  ctx.fillRect(player.x-10, player.y, 20, 20);
+
+  // bullets
+  ctx.fillStyle="yellow";
+  bullets.forEach(b=> ctx.fillRect(b.x, b.y, 3, 6));
+
+  // enemies
+  ctx.fillStyle="red";
+  enemies.forEach(e=> ctx.fillRect(e.x, e.y, 10, 10));
+
+  // score
+  ctx.fillStyle="white";
+  ctx.font="14px monospace";
+  ctx.fillText("Score: "+score, 10, 20);
+
+  if(gameOver){
+    ctx.fillText("GAME OVER 💀", 60, 160);
+  }
+}
+
+// loop
+function loop(){
+  if(!gameOver) update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
